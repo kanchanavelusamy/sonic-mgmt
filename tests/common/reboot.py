@@ -197,6 +197,30 @@ def wait_for_startup(duthost, localhost, delay, timeout):
 
     logger.info('ssh has started up on {}'.format(hostname))
 
+def wait_for_gnmi_container(duthost, timeout=300, interval=10):
+    """
+    Waits for the gNMI container to be in a running state.
+
+    :param duthost: The DUT host object
+    :param timeout: Maximum time to wait for the container (in seconds)
+    :param interval: Time interval between each check (in seconds)
+    :return: True if the container is up, False otherwise
+    """
+    elapsed_time = 0
+    while elapsed_time < timeout:
+        # Check if gNMI container is running
+        output = duthost.shell("docker inspect -f '{{ '{{' }} .State.Status {{ '}}' }}' gnmi 2>/dev/null")['stdout_lines']
+
+        if "running" in str(output).lower():
+            logging.info("gNMI container is running.")
+            return True
+
+        logging.warning("gNMI container not found in running state. Retrying in {}s...".format(interval))
+        time.sleep(interval)
+        elapsed_time += interval
+
+    logging.error("Timeout: gNMI container did not start within {} seconds!".format(timeout))
+    return False
 
 def perform_reboot(duthost, pool, reboot_command, reboot_helper=None, reboot_kwargs=None, reboot_type='cold'):
     # pool for executing tasks asynchronously
